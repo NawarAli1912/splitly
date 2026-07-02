@@ -97,6 +97,13 @@ public sealed class ExpenseGroup
             return ExpenseGroupErrors.InvalidAmount;
         }
 
+        var amountResult = Money.FromDecimal(amount);
+
+        if (amountResult.IsError)
+        {
+            return amountResult.Errors;
+        }
+
         var splitParticipants = splitAmong.Distinct().ToList();
 
         if (splitParticipants.Count == 0)
@@ -109,7 +116,7 @@ public sealed class ExpenseGroup
             return ExpenseGroupErrors.ParticipantNotFound;
         }
 
-        var expense = new Expense(Guid.NewGuid(), paidBy, amount, description, spentOn, splitParticipants);
+        var expense = new Expense(Guid.NewGuid(), paidBy, amountResult.Value, description, spentOn, splitParticipants);
         _expenses.Add(expense);
 
         return expense;

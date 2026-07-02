@@ -15,7 +15,7 @@ public class SettleTests
         var transfer = Assert.Single(transfers);
         Assert.Equal(bob, transfer.FromParticipantId);
         Assert.Equal(alice, transfer.ToParticipantId);
-        Assert.Equal(50m, transfer.Amount);
+        Assert.Equal(50m, transfer.Amount.Value);
     }
 
     [Fact]
@@ -64,14 +64,13 @@ public class SettleTests
 
     private static void AssertEveryoneSettled(ExpenseGroup group, IReadOnlyList<Transfer> transfers)
     {
-        var balances = group.Participants.ToDictionary(p => p.Id, _ => 0m);
+        var balances = group.Participants.ToDictionary(p => p.Id, _ => Money.Zero);
 
         foreach (var expense in group.Expenses)
         {
             balances[expense.PaidById] += expense.Amount;
-            var share = expense.Amount / expense.SplitAmong.Count;
 
-            foreach (var participantId in expense.SplitAmong)
+            foreach (var (participantId, share) in expense.Shares())
             {
                 balances[participantId] -= share;
             }
@@ -85,7 +84,7 @@ public class SettleTests
 
         foreach (var (participantId, balance) in balances)
         {
-            Assert.True(Math.Abs(balance) < 0.01m, $"Participant {participantId} left with balance {balance}");
+            Assert.True(balance.IsZero, $"Participant {participantId} left with balance {balance}");
         }
     }
 }

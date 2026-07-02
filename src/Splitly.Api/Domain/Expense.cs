@@ -8,7 +8,7 @@ public sealed class Expense
 
     public Guid PaidById { get; private set; }
 
-    public decimal Amount { get; private set; }
+    public Money Amount { get; private set; }
 
     public string Description { get; private set; }
 
@@ -19,7 +19,7 @@ public sealed class Expense
     internal Expense(
         Guid id,
         Guid paidById,
-        decimal amount,
+        Money amount,
         string description,
         DateOnly spentOn,
         List<Guid> splitAmong)
@@ -30,6 +30,13 @@ public sealed class Expense
         Description = description;
         SpentOn = spentOn;
         _splitAmong = splitAmong;
+    }
+
+    public IReadOnlyList<(Guid ParticipantId, Money Share)> Shares()
+    {
+        var shares = Amount.SplitEvenly(_splitAmong.Count);
+
+        return _splitAmong.Select((participantId, i) => (participantId, shares[i])).ToList();
     }
 
     public bool Involves(Guid participantId) =>

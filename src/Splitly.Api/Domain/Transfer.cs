@@ -1,3 +1,3 @@
 namespace Splitly.Api.Domain;
 
-public sealed record Transfer(Guid FromParticipantId, Guid ToParticipantId, decimal Amount);
+public sealed record Transfer(Guid FromParticipantId, Guid ToParticipantId, Money Amount);
