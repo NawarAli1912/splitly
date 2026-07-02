@@ -131,7 +131,64 @@ public sealed class ExpenseGroup
 
     public IReadOnlyList<Transfer> Settle()
     {
-        throw new NotImplementedException();
+        Dictionary<Guid, Money> participantsBalances = [];
+
+        foreach (Expense expense in _expenses)
+        {
+            participantsBalances.TryGetValue(expense.PaidById, out Money balance);
+            balance += expense.Amount;
+            participantsBalances[expense.PaidById] = balance;
+
+            foreach ((Guid sharedWithId, Money sharedAmount) in expense.Shares())
+            {
+                participantsBalances.TryGetValue(sharedWithId, out balance);
+                balance -= sharedAmount;
+                participantsBalances[sharedWithId] = balance;
+            }
+        }
+
+        var largestFirst = Comparer<Money>.Create((left, right) => right.CompareTo(left));
+
+        PriorityQueue<Guid, Money> debtors = new(largestFirst);
+        PriorityQueue<Guid, Money> creditors = new(largestFirst);
+
+        foreach ((Guid participantId, Money balance) in participantsBalances)
+        {
+            if (balance.IsNegative)
+            {
+                debtors.Enqueue(participantId, balance.Abs());
+            }
+            else if (balance.IsPositive)
+            {
+                creditors.Enqueue(participantId, balance);
+            }
+        }
+
+        List<Transfer> transfers = [];
+
+        while (debtors.Count > 0 && creditors.Count > 0)
+        {
+            debtors.TryDequeue(out Guid debtorId, out Money owed);
+            creditors.TryDequeue(out Guid creditorId, out Money credit);
+
+            Money paid = Money.Min(owed, credit);
+            transfers.Add(new Transfer(debtorId, creditorId, paid));
+
+            Money remainingDebt = owed - paid;
+            Money remainingCredit = credit - paid;
+
+            if (remainingDebt.IsPositive)
+            {
+                debtors.Enqueue(debtorId, remainingDebt);
+            }
+
+            if (remainingCredit.IsPositive)
+            {
+                creditors.Enqueue(creditorId, remainingCredit);
+            }
+        }
+
+        return transfers;
     }
 
     private bool IsParticipant(Guid id) => _participants.Any(p => p.Id == id);
