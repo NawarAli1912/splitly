@@ -1,0 +1,6 @@
+@Splitly.Api_HostAddress = http://localhost:5170
+
+GET {{Splitly.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
