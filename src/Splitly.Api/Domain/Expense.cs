@@ -41,4 +41,10 @@ public sealed class Expense
 
     public bool Involves(Guid participantId) =>
         PaidById == participantId || _splitAmong.Contains(participantId);
+
+    private Expense()
+    {
+        Description = null!;
+        _splitAmong = null!;
+    }
 }
