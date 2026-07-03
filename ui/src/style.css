@@ -13,27 +13,73 @@
   --color-negative: #e25c4a;
 
   --radius-card: 22px;
-  --shadow-card: 0 8px 32px rgb(31 38 135 / 0.08);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.05);
 }
 
 body {
   @apply bg-canvas text-ink font-sans antialiased;
 }
 
+/* Content layer: clean, opaque */
 .glass {
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: #ffffff;
+  border: 1px solid rgb(255 255 255 / 0.8);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
 }
 
-.glass-pill {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+/* Chrome layer: Liquid Glass — lensing blur + specular edge, content scrolls under it */
+.liquid {
+  background: rgb(255 255 255 / 0.5);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgb(255 255 255 / 0.6);
+  box-shadow:
+    inset 0 1px 1px rgb(255 255 255 / 0.95),
+    inset 0 -1px 1px rgb(255 255 255 / 0.4),
+    0 6px 20px rgb(0 0 0 / 0.1);
+}
+
+/* Motion */
+.page-enter-active,
+.page-leave-active,
+.tab-enter-active,
+.tab-leave-active {
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.page-enter-from,
+.tab-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-leave-to,
+.tab-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.list-enter-active,
+.list-move {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+.list-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.list-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.list-leave-to {
+  opacity: 0;
 }
 
 @keyframes bob {
