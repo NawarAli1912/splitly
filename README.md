@@ -4,11 +4,13 @@
 
 Split group expenses and settle up with the minimum number of payments.
 
-Add expenses for a trip or a shared flat, and Splitly tells you exactly who pays whom — not 40 back-and-forth transfers, but the minimal set (at most n−1 for n people).
+Add expenses for a trip or a shared flat, and Splitly tells you exactly who pays whom — not 40 back-and-forth transfers, but the minimal set (at most n−1 for n people). Prefer paying back each person directly, or routing everything through one friend? Settlement strategies are pluggable.
+
+![Splitly — group view with settlement](.github/screenshot.png)
 
 ## What this demonstrates
 
-- **Graph algorithms** — settlement is a min cash flow problem: net balances (paid − consumed), then greedy matching over two max-heaps, O(n log n)
+- **Graph algorithms** — settlement is a min cash flow problem: net balances (paid − consumed), then greedy matching over two max-heaps, O(n log n); alternative strategies (direct payback, via a banker) plug into the same `ISettlementStrategy` seam
 - **Correct money handling** — a `Money` type over integer cents; division distributes remainder cents deterministically, no cent is ever lost
 - **Rich domain model** — every invariant lives inside the `ExpenseGroup` aggregate; invalid state is unrepresentable from outside
 - **REST API discipline** — request/response contracts, thin controllers, one handler per use case, every error an RFC 7807 `problem+json` body
@@ -28,7 +30,7 @@ DELETE /groups/{id}/expenses/{expenseId}
 POST   /groups/{id}/payments
 GET    /groups/{id}/payments?page=1&pageSize=20
 DELETE /groups/{id}/payments/{paymentId}
-GET    /groups/{id}/settlement
+GET    /groups/{id}/settlement?strategy=minimum-transfers|direct-payback|via-banker&hub={participantId}
 ```
 
 Errors follow one contract: `400` validation (field-level details), `404` not found, `409` conflict — always `application/problem+json`.
