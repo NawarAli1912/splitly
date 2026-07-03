@@ -4,7 +4,7 @@ import { avatarStyle, chartColor, formatMoney, initials } from '../lib/format'
 import { GroupCtxKey } from '../lib/groupContext'
 
 const ctx = inject(GroupCtxKey)!
-const { group, expenses } = ctx
+const { group, expenses, payments } = ctx
 
 const total = computed(() => expenses.value.reduce((sum, e) => sum + e.amount, 0))
 const perPerson = computed(() =>
@@ -29,11 +29,16 @@ const people = computed<PersonStat[]>(() => {
       if (expense.splitAmong.includes(participant.id))
         consumed += expense.amount / expense.splitAmong.length
     }
+    let settled = 0
+    for (const payment of payments.value) {
+      if (payment.fromParticipantId === participant.id) settled += payment.amount
+      if (payment.toParticipantId === participant.id) settled -= payment.amount
+    }
     return {
       id: participant.id,
       name: participant.name,
       paid,
-      net: paid - consumed,
+      net: paid - consumed + settled,
       color: chartColor(index),
     }
   })
@@ -125,7 +130,7 @@ function shortDate(iso: string): string {
       <section class="glass mt-6 p-6">
         <h2 class="text-lg font-semibold tracking-tight">Balances</h2>
         <p class="mt-1 text-[13px] text-ink-secondary">
-          Paid minus fair share — green is owed money, red owes.
+          Paid minus fair share, after recorded payments — green is owed money, red owes.
         </p>
         <ul class="mt-4 space-y-3">
           <li v-for="person in people" :key="person.id" class="flex items-center gap-3">
