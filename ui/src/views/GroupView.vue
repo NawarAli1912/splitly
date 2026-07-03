@@ -212,9 +212,11 @@ async function addExpense() {
     <section v-if="expenses.length > 0" class="glass mt-6 p-6">
       <h2 class="text-lg font-semibold tracking-tight">Who pays whom</h2>
 
-      <p v-if="transfers.length === 0" class="mt-3 text-[14px] text-ink-secondary">
-        All settled — nobody owes anything.
-      </p>
+      <div v-if="transfers.length === 0" class="mt-3 py-6 text-center">
+        <p class="text-3xl">🎉</p>
+        <p class="mt-2 text-[15px] font-medium">All settled</p>
+        <p class="mt-1 text-[13px] text-ink-secondary">Nobody owes anything — enjoy.</p>
+      </div>
 
       <TransitionGroup v-else tag="ul" name="list" class="mt-2 divide-y divide-line/40">
         <li
