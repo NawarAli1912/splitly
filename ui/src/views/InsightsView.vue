@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { api, type ExpenseResponse, type GroupResponse } from '../lib/api'
+import { computed, inject } from 'vue'
 import { avatarStyle, chartColor, formatMoney, initials } from '../lib/format'
-import GroupTabs from '../components/GroupTabs.vue'
+import { GroupCtxKey } from '../lib/groupContext'
 
-const props = defineProps<{ groupId: string }>()
-
-const group = ref<GroupResponse>()
-const expenses = ref<ExpenseResponse[]>([])
-const loadError = ref('')
+const ctx = inject(GroupCtxKey)!
+const { group, expenses } = ctx
 
 const total = computed(() => expenses.value.reduce((sum, e) => sum + e.amount, 0))
 const perPerson = computed(() =>
@@ -61,31 +57,10 @@ const maxDay = computed(() => Math.max(...byDay.value.map((d) => d.amount), 0.01
 function shortDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 }
-
-onMounted(async () => {
-  try {
-    // ponytail: one page of 100 expenses; paginate the insights query if groups outgrow it
-    const [g, page] = await Promise.all([
-      api.getGroup(props.groupId),
-      api.listExpenses(props.groupId, 1, 100),
-    ])
-    group.value = g
-    expenses.value = page.items
-  } catch {
-    loadError.value = 'Could not load this group.'
-  }
-})
 </script>
 
 <template>
-  <p v-if="loadError" class="pt-16 text-center text-ink-secondary">{{ loadError }}</p>
-
-  <template v-else-if="group">
-    <h1 class="text-3xl font-semibold tracking-tight">{{ group.name }}</h1>
-    <p class="mt-1 text-[13px] text-ink-secondary">Amounts in {{ group.currency }}</p>
-
-    <GroupTabs :group-id="groupId" />
-
+  <div v-if="group">
     <p v-if="expenses.length === 0" class="pt-16 text-center text-ink-secondary">
       No expenses yet — add some and the numbers appear here.
     </p>
@@ -113,7 +88,7 @@ onMounted(async () => {
         </div>
         <div class="glass p-5">
           <p class="text-[13px] font-medium text-ink-secondary">Per person</p>
-          <p class="mt-1 text-2xl font-semibold tracking-tight text-[#30d158] tabular-nums">
+          <p class="mt-1 text-2xl font-semibold tracking-tight text-positive tabular-nums">
             {{ formatMoney(perPerson, group.currency) }}
           </p>
         </div>
@@ -149,7 +124,9 @@ onMounted(async () => {
       <!-- Balances -->
       <section class="glass mt-6 p-6">
         <h2 class="text-lg font-semibold tracking-tight">Balances</h2>
-        <p class="mt-1 text-[13px] text-ink-secondary">Paid minus fair share — green is owed money, red owes.</p>
+        <p class="mt-1 text-[13px] text-ink-secondary">
+          Paid minus fair share — green is owed money, red owes.
+        </p>
         <ul class="mt-4 space-y-3">
           <li v-for="person in people" :key="person.id" class="flex items-center gap-3">
             <span class="w-20 truncate text-[14px] font-medium">{{ person.name }}</span>
@@ -198,5 +175,5 @@ onMounted(async () => {
         </div>
       </section>
     </template>
-  </template>
+  </div>
 </template>

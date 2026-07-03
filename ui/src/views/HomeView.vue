@@ -34,6 +34,7 @@ async function createGroup() {
 </script>
 
 <template>
+  <div>
   <section class="pt-8 pb-12 text-center">
     <h1 class="text-5xl font-semibold tracking-tight">Split expenses.<br />Settle simply.</h1>
     <p class="mx-auto mt-4 max-w-md text-lg text-ink-secondary">
@@ -109,4 +110,5 @@ async function createGroup() {
       </RouterLink>
     </div>
   </section>
+  </div>
 </template>

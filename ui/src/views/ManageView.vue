@@ -1,20 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { api, ApiError, type ExpenseResponse, type GroupResponse } from '../lib/api'
+import { api, ApiError } from '../lib/api'
 import { forgetGroup } from '../lib/recentGroups'
-import { identityFor } from '../lib/identity'
 import { avatarStyle, formatMoney, initials } from '../lib/format'
-import GroupTabs from '../components/GroupTabs.vue'
+import { GroupCtxKey } from '../lib/groupContext'
 
-const props = defineProps<{ groupId: string }>()
+const ctx = inject(GroupCtxKey)!
+const { group, expenses, me } = ctx
 const router = useRouter()
 
-const group = ref<GroupResponse>()
-const expenses = ref<ExpenseResponse[]>([])
-const loadError = ref('')
-
-const me = identityFor(props.groupId)
 const participantName = ref('')
 const participantError = ref('')
 
@@ -35,26 +30,10 @@ function bobStyle(index: number): Record<string, string> {
   }
 }
 
-async function load() {
-  try {
-    const [g, page] = await Promise.all([
-      api.getGroup(props.groupId),
-      api.listExpenses(props.groupId, 1, 100),
-    ])
-    group.value = g
-    expenses.value = page.items
-  } catch (e) {
-    loadError.value =
-      e instanceof ApiError && e.status === 404
-        ? 'This group does not exist.'
-        : 'Could not reach the server.'
-  }
-}
-
 async function addParticipant() {
   participantError.value = ''
   try {
-    const participant = await api.addParticipant(props.groupId, participantName.value.trim())
+    const participant = await api.addParticipant(ctx.groupId, participantName.value.trim())
     group.value!.participants.push(participant)
     participantName.value = ''
   } catch (e) {
@@ -65,7 +44,7 @@ async function addParticipant() {
 async function removeParticipant(participantId: string) {
   participantError.value = ''
   try {
-    await api.removeParticipant(props.groupId, participantId)
+    await api.removeParticipant(ctx.groupId, participantId)
     group.value!.participants = group.value!.participants.filter((p) => p.id !== participantId)
   } catch (e) {
     participantError.value = e instanceof ApiError ? e.message : 'Could not reach the server'
@@ -73,34 +52,29 @@ async function removeParticipant(participantId: string) {
 }
 
 async function removeExpense(expenseId: string) {
-  await api.removeExpense(props.groupId, expenseId)
-  expenses.value = expenses.value.filter((e) => e.id !== expenseId)
+  await api.removeExpense(ctx.groupId, expenseId)
+  await ctx.refreshMoney()
 }
 
 async function deleteGroup() {
   if (!confirm(`Delete “${group.value?.name}” and all its expenses?`)) return
-  await api.deleteGroup(props.groupId)
-  forgetGroup(props.groupId)
+  await api.deleteGroup(ctx.groupId)
+  forgetGroup(ctx.groupId)
   await router.push('/')
 }
-
-onMounted(load)
 </script>
 
 <template>
-  <p v-if="loadError" class="pt-16 text-center text-ink-secondary">{{ loadError }}</p>
-
-  <template v-else-if="group">
-    <h1 class="text-3xl font-semibold tracking-tight">{{ group.name }}</h1>
-    <p class="mt-1 text-[13px] text-ink-secondary">Amounts in {{ group.currency }}</p>
-
-    <GroupTabs :group-id="groupId" />
-
+  <div v-if="group">
     <!-- People bubbles -->
     <section class="glass mt-6 p-6">
       <h2 class="text-lg font-semibold tracking-tight">People</h2>
 
-      <div class="mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-10 px-2 pb-4">
+      <TransitionGroup
+        tag="div"
+        name="list"
+        class="mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-10 px-2 pb-4"
+      >
         <div
           v-for="(participant, index) in group.participants"
           :key="participant.id"
@@ -131,7 +105,7 @@ onMounted(load)
             ×
           </button>
         </div>
-      </div>
+      </TransitionGroup>
 
       <form class="mx-auto mt-2 flex max-w-sm gap-2" @submit.prevent="addParticipant">
         <input
@@ -142,7 +116,7 @@ onMounted(load)
         />
         <button
           type="submit"
-          class="rounded-full bg-accent px-5 text-[14px] font-medium text-white transition duration-200 hover:bg-accent-hover"
+          class="rounded-full bg-accent px-5 text-[14px] font-medium text-white transition duration-200 hover:bg-accent-hover active:scale-95"
         >
           Add
         </button>
@@ -155,7 +129,7 @@ onMounted(load)
     <!-- Expense history -->
     <section v-if="expenses.length" class="glass mt-6 p-6">
       <h2 class="text-lg font-semibold tracking-tight">Expenses</h2>
-      <ul class="mt-2 divide-y divide-line/40">
+      <TransitionGroup tag="ul" name="list" class="mt-2 divide-y divide-line/40">
         <li v-for="expense in expenses" :key="expense.id" class="group flex items-center py-3">
           <div>
             <p class="text-[15px] font-medium">{{ expense.description }}</p>
@@ -175,7 +149,7 @@ onMounted(load)
             ×
           </button>
         </li>
-      </ul>
+      </TransitionGroup>
     </section>
 
     <div class="mt-8 text-center">
@@ -186,5 +160,5 @@ onMounted(load)
         Delete this group
       </button>
     </div>
-  </template>
+  </div>
 </template>
