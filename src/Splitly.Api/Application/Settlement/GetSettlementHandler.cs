@@ -15,6 +15,7 @@ public sealed class GetSettlementHandler(ISplitlyDbContext dbContext)
         var group = await dbContext.ExpenseGroups
             .AsNoTracking()
             .Include(g => g.Expenses)
+            .Include(g => g.Payments)
             .SingleOrDefaultAsync(g => g.Id == groupId, cancellationToken);
 
         if (group is null)

@@ -8,7 +8,7 @@ import { copyText } from '../lib/clipboard'
 import { GroupCtxKey } from '../lib/groupContext'
 
 const ctx = inject(GroupCtxKey)!
-const { group, expenses, me } = ctx
+const { group, expenses, payments, me } = ctx
 const router = useRouter()
 
 const participantName = ref('')
@@ -59,6 +59,11 @@ async function removeParticipant(participantId: string) {
 
 async function removeExpense(expenseId: string) {
   await api.removeExpense(ctx.groupId, expenseId)
+  await ctx.refreshMoney()
+}
+
+async function removePayment(paymentId: string) {
+  await api.removePayment(ctx.groupId, paymentId)
   await ctx.refreshMoney()
 }
 
@@ -157,6 +162,31 @@ async function deleteGroup() {
             class="ml-4 text-ink-secondary/0 transition duration-200 group-hover:text-ink-secondary/60 hover:!text-negative"
             :aria-label="`Delete ${expense.description}`"
             @click="removeExpense(expense.id)"
+          >
+            ×
+          </button>
+        </li>
+      </TransitionGroup>
+    </section>
+
+    <!-- Payment history -->
+    <section v-if="payments.length" class="glass mt-6 p-6">
+      <h2 class="text-lg font-semibold tracking-tight">Payments</h2>
+      <TransitionGroup tag="ul" name="list" class="mt-2 divide-y divide-line/40">
+        <li v-for="payment in payments" :key="payment.id" class="group flex items-center py-3">
+          <div>
+            <p class="text-[15px] font-medium">
+              {{ nameOf(payment.fromParticipantId) }} paid {{ nameOf(payment.toParticipantId) }}
+            </p>
+            <p class="mt-0.5 text-[13px] text-ink-secondary">{{ payment.paidOn }}</p>
+          </div>
+          <span class="ml-auto text-[15px] font-semibold tabular-nums text-positive">
+            {{ formatMoney(payment.amount, group.currency) }}
+          </span>
+          <button
+            class="ml-4 text-ink-secondary/0 transition duration-200 group-hover:text-ink-secondary/60 hover:!text-negative"
+            :aria-label="`Delete payment from ${nameOf(payment.fromParticipantId)} to ${nameOf(payment.toParticipantId)}`"
+            @click="removePayment(payment.id)"
           >
             ×
           </button>

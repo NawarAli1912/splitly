@@ -33,4 +33,16 @@ public static class ExpenseGroupErrors
 
     public static readonly Error ExpenseNotFound = Error.NotFound(
         "ExpenseGroup.ExpenseNotFound", "Expense not found in this group.");
+
+    public static readonly Error ParticipantHasPayments = Error.Conflict(
+        "ExpenseGroup.ParticipantHasPayments", "Participant is involved in payments and cannot be removed.");
+
+    public static readonly Error InvalidPaymentAmount = Error.Validation(
+        "ExpenseGroup.InvalidPaymentAmount", "Payment amount must be positive.");
+
+    public static readonly Error PaymentToSelf = Error.Validation(
+        "ExpenseGroup.PaymentToSelf", "A payment must be between two different participants.");
+
+    public static readonly Error PaymentNotFound = Error.NotFound(
+        "ExpenseGroup.PaymentNotFound", "Payment not found in this group.");
 }

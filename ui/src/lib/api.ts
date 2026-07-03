@@ -29,6 +29,21 @@ export interface PaginatedResponse<T> {
   hasPreviousPage: boolean
 }
 
+export interface PaymentResponse {
+  id: string
+  fromParticipantId: string
+  toParticipantId: string
+  amount: number
+  paidOn: string
+}
+
+export interface RecordPaymentRequest {
+  fromParticipantId: string
+  toParticipantId: string
+  amount: number
+  paidOn: string
+}
+
 export interface TransferResponse {
   fromParticipantId: string
   toParticipantId: string
@@ -106,6 +121,18 @@ export const api = {
 
   removeExpense: (groupId: string, expenseId: string) =>
     request<void>('DELETE', `/groups/${groupId}/expenses/${expenseId}`),
+
+  recordPayment: (groupId: string, payment: RecordPaymentRequest) =>
+    request<PaymentResponse>('POST', `/groups/${groupId}/payments`, payment),
+
+  listPayments: (groupId: string, page = 1, pageSize = 50) =>
+    request<PaginatedResponse<PaymentResponse>>(
+      'GET',
+      `/groups/${groupId}/payments?page=${page}&pageSize=${pageSize}`,
+    ),
+
+  removePayment: (groupId: string, paymentId: string) =>
+    request<void>('DELETE', `/groups/${groupId}/payments/${paymentId}`),
 
   getSettlement: (groupId: string) =>
     request<SettlementResponse>('GET', `/groups/${groupId}/settlement`),

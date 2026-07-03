@@ -30,7 +30,14 @@ public sealed class ExpenseGroupConfiguration : IEntityTypeConfiguration<Expense
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasMany(g => g.Payments)
+            .WithOne()
+            .HasForeignKey("ExpenseGroupId")
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Navigation(g => g.Participants).UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.Navigation(g => g.Expenses).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(g => g.Payments).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

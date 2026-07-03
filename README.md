@@ -25,6 +25,9 @@ DELETE /groups/{id}/participants/{participantId}
 POST   /groups/{id}/expenses
 GET    /groups/{id}/expenses?page=1&pageSize=20
 DELETE /groups/{id}/expenses/{expenseId}
+POST   /groups/{id}/payments
+GET    /groups/{id}/payments?page=1&pageSize=20
+DELETE /groups/{id}/payments/{paymentId}
 GET    /groups/{id}/settlement
 ```
 

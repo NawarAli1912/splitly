@@ -3,6 +3,7 @@ using Splitly.Api.Application.Abstractions;
 using Splitly.Api.Application.Expenses;
 using Splitly.Api.Application.Groups;
 using Splitly.Api.Application.Participants;
+using Splitly.Api.Application.Payments;
 using Splitly.Api.Application.Settlement;
 using Splitly.Api.Database;
 using Splitly.Api.Middleware;
@@ -48,6 +49,9 @@ public static class DependencyInjection
         builder.Services.AddScoped<AddExpenseHandler>();
         builder.Services.AddScoped<ListExpensesHandler>();
         builder.Services.AddScoped<RemoveExpenseHandler>();
+        builder.Services.AddScoped<RecordPaymentHandler>();
+        builder.Services.AddScoped<ListPaymentsHandler>();
+        builder.Services.AddScoped<RemovePaymentHandler>();
         builder.Services.AddScoped<GetSettlementHandler>();
 
         return builder;

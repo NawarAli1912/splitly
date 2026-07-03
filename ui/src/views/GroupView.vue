@@ -51,6 +51,29 @@ function resetExpenseDefaults() {
   }
 }
 
+const markingPaid = ref('')
+
+async function markPaid(transfer: TransferResponse) {
+  if (markingPaid.value) return
+  markingPaid.value = transferKey(transfer)
+  try {
+    await api.recordPayment(ctx.groupId, {
+      fromParticipantId: transfer.fromParticipantId,
+      toParticipantId: transfer.toParticipantId,
+      amount: transfer.amount,
+      paidOn: today,
+    })
+    await ctx.refreshMoney()
+    ctx.showToast(
+      `${nameOf(transfer.fromParticipantId)} paid ${nameOf(transfer.toParticipantId)} — recorded`,
+    )
+  } catch (e) {
+    ctx.showToast(e instanceof ApiError ? e.message : 'Could not reach the server')
+  } finally {
+    markingPaid.value = ''
+  }
+}
+
 async function addExpense() {
   expenseError.value = ''
   try {
@@ -218,6 +241,15 @@ async function addExpense() {
           <span class="ml-auto text-[15px] font-semibold tabular-nums">
             {{ formatMoney(transfer.amount, group.currency) }}
           </span>
+          <button
+            type="button"
+            :disabled="markingPaid !== ''"
+            class="ml-3 rounded-full border border-positive/40 px-3 py-1 text-[12px] font-medium text-positive transition duration-200 hover:bg-positive/10 active:scale-95 disabled:opacity-50"
+            :aria-label="`Mark ${nameOf(transfer.fromParticipantId)}'s payment to ${nameOf(transfer.toParticipantId)} as paid`"
+            @click="markPaid(transfer)"
+          >
+            {{ markingPaid === transferKey(transfer) ? 'Saving…' : 'Mark paid' }}
+          </button>
         </li>
       </TransitionGroup>
     </section>

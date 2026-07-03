@@ -1,10 +1,11 @@
 import type { InjectionKey, Ref } from 'vue'
-import type { ExpenseResponse, GroupResponse, TransferResponse } from './api'
+import type { ExpenseResponse, GroupResponse, PaymentResponse, TransferResponse } from './api'
 
 export interface GroupContext {
   groupId: string
   group: Ref<GroupResponse | undefined>
   expenses: Ref<ExpenseResponse[]>
+  payments: Ref<PaymentResponse[]>
   transfers: Ref<TransferResponse[]>
   me: Ref<string | null>
   refreshMoney(): Promise<void>

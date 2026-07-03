@@ -6,6 +6,7 @@ public sealed class ExpenseGroup
 {
     private readonly List<Participant> _participants = [];
     private readonly List<Expense> _expenses = [];
+    private readonly List<Payment> _payments = [];
 
     public Guid Id { get; private set; }
 
@@ -18,6 +19,8 @@ public sealed class ExpenseGroup
     public IReadOnlyCollection<Participant> Participants => _participants;
 
     public IReadOnlyCollection<Expense> Expenses => _expenses;
+
+    public IReadOnlyCollection<Payment> Payments => _payments;
 
     private ExpenseGroup(Guid id, string name, string currency, DateTime createdAtUtc)
     {
@@ -80,6 +83,11 @@ public sealed class ExpenseGroup
             return ExpenseGroupErrors.ParticipantHasExpenses;
         }
 
+        if (_payments.Any(p => p.Involves(participantId)))
+        {
+            return ExpenseGroupErrors.ParticipantHasPayments;
+        }
+
         _participants.Remove(participant);
 
         return Result.Deleted;
@@ -129,6 +137,47 @@ public sealed class ExpenseGroup
         return removedCount == 0 ? ExpenseGroupErrors.ExpenseNotFound : Result.Deleted;
     }
 
+    public ErrorOr<Payment> RecordPayment(
+        Guid fromParticipantId,
+        Guid toParticipantId,
+        decimal amount,
+        DateOnly paidOn)
+    {
+        if (amount <= 0)
+        {
+            return ExpenseGroupErrors.InvalidPaymentAmount;
+        }
+
+        var amountResult = Money.FromDecimal(amount);
+
+        if (amountResult.IsError)
+        {
+            return amountResult.Errors;
+        }
+
+        if (fromParticipantId == toParticipantId)
+        {
+            return ExpenseGroupErrors.PaymentToSelf;
+        }
+
+        if (!IsParticipant(fromParticipantId) || !IsParticipant(toParticipantId))
+        {
+            return ExpenseGroupErrors.ParticipantNotFound;
+        }
+
+        var payment = new Payment(Guid.NewGuid(), fromParticipantId, toParticipantId, amountResult.Value, paidOn);
+        _payments.Add(payment);
+
+        return payment;
+    }
+
+    public ErrorOr<Deleted> RemovePayment(Guid paymentId)
+    {
+        var removedCount = _payments.RemoveAll(p => p.Id == paymentId);
+
+        return removedCount == 0 ? ExpenseGroupErrors.PaymentNotFound : Result.Deleted;
+    }
+
     public IReadOnlyList<Transfer> Settle()
     {
         Dictionary<Guid, Money> participantsBalances = [];
@@ -145,6 +194,15 @@ public sealed class ExpenseGroup
                 balance -= sharedAmount;
                 participantsBalances[sharedWithId] = balance;
             }
+        }
+
+        foreach (Payment payment in _payments)
+        {
+            participantsBalances.TryGetValue(payment.FromParticipantId, out Money fromBalance);
+            participantsBalances[payment.FromParticipantId] = fromBalance + payment.Amount;
+
+            participantsBalances.TryGetValue(payment.ToParticipantId, out Money toBalance);
+            participantsBalances[payment.ToParticipantId] = toBalance - payment.Amount;
         }
 
         var largestFirst = Comparer<Money>.Create((left, right) => right.CompareTo(left));

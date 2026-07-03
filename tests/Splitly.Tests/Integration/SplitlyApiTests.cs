@@ -5,6 +5,7 @@ using Splitly.Api.Contracts.Common;
 using Splitly.Api.Contracts.Expenses;
 using Splitly.Api.Contracts.Groups;
 using Splitly.Api.Contracts.Participants;
+using Splitly.Api.Contracts.Payments;
 using Splitly.Api.Contracts.Settlement;
 
 namespace Splitly.Tests.Integration;
@@ -108,6 +109,61 @@ public sealed class SplitlyApiTests(SplitlyApiFactory factory) : IClassFixture<S
         var response = await _client.DeleteAsync($"/groups/{groupId}/participants/{bob}");
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RecordedPayment_SettlesTheGroup_AndCanBeUndone()
+    {
+        var groupId = await CreateGroupAsync("Weekend");
+        var alice = await AddParticipantAsync(groupId, "Alice");
+        var bob = await AddParticipantAsync(groupId, "Bob");
+        await AddExpenseAsync(groupId, new AddExpenseRequest(alice, 100m, "Hotel", Today, [alice, bob]));
+
+        var recordResponse = await _client.PostAsJsonAsync(
+            $"/groups/{groupId}/payments",
+            new RecordPaymentRequest(bob, alice, 50m, Today));
+
+        Assert.Equal(HttpStatusCode.Created, recordResponse.StatusCode);
+        var payment = await recordResponse.Content.ReadFromJsonAsync<PaymentResponse>();
+        Assert.NotNull(payment);
+
+        var settled = await _client.GetFromJsonAsync<SettlementResponse>(
+            $"/groups/{groupId}/settlement");
+        Assert.NotNull(settled);
+        Assert.Empty(settled.Transfers);
+
+        var payments = await _client.GetFromJsonAsync<PaginatedResponse<PaymentResponse>>(
+            $"/groups/{groupId}/payments");
+        Assert.NotNull(payments);
+        Assert.Equal(1, payments.TotalCount);
+
+        var deleteResponse = await _client.DeleteAsync($"/groups/{groupId}/payments/{payment.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        var unsettled = await _client.GetFromJsonAsync<SettlementResponse>(
+            $"/groups/{groupId}/settlement");
+        Assert.NotNull(unsettled);
+        var transfer = Assert.Single(unsettled.Transfers);
+        Assert.Equal(bob, transfer.FromParticipantId);
+        Assert.Equal(alice, transfer.ToParticipantId);
+        Assert.Equal(50m, transfer.Amount);
+    }
+
+    [Fact]
+    public async Task SelfPayment_ReturnsValidationProblemDetails()
+    {
+        var groupId = await CreateGroupAsync("Solo");
+        var alice = await AddParticipantAsync(groupId, "Alice");
+
+        var response = await _client.PostAsJsonAsync(
+            $"/groups/{groupId}/payments",
+            new RecordPaymentRequest(alice, alice, 10m, Today));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Contains("ExpenseGroup.PaymentToSelf", problem.Errors.Keys);
     }
 
     [Fact]

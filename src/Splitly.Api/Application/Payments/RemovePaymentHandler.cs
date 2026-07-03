@@ -3,18 +3,16 @@ using Microsoft.EntityFrameworkCore;
 using Splitly.Api.Application.Abstractions;
 using Splitly.Api.Domain;
 
-namespace Splitly.Api.Application.Participants;
+namespace Splitly.Api.Application.Payments;
 
-public sealed class RemoveParticipantHandler(ISplitlyDbContext dbContext)
+public sealed class RemovePaymentHandler(ISplitlyDbContext dbContext)
 {
     public async Task<ErrorOr<Deleted>> HandleAsync(
         Guid groupId,
-        Guid participantId,
+        Guid paymentId,
         CancellationToken cancellationToken)
     {
         var group = await dbContext.ExpenseGroups
-            .Include(g => g.Participants)
-            .Include(g => g.Expenses)
             .Include(g => g.Payments)
             .SingleOrDefaultAsync(g => g.Id == groupId, cancellationToken);
 
@@ -23,7 +21,7 @@ public sealed class RemoveParticipantHandler(ISplitlyDbContext dbContext)
             return ExpenseGroupErrors.NotFound;
         }
 
-        var removeResult = group.RemoveParticipant(participantId);
+        var removeResult = group.RemovePayment(paymentId);
 
         if (removeResult.IsError)
         {

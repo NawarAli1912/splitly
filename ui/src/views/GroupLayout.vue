@@ -6,6 +6,7 @@ import {
   ApiError,
   type ExpenseResponse,
   type GroupResponse,
+  type PaymentResponse,
   type TransferResponse,
 } from '../lib/api'
 import { forgetGroup, rememberGroup } from '../lib/recentGroups'
@@ -21,6 +22,7 @@ const router = useRouter()
 
 const group = ref<GroupResponse>()
 const expenses = ref<ExpenseResponse[]>([])
+const payments = ref<PaymentResponse[]>([])
 const transfers = ref<TransferResponse[]>([])
 const loadError = ref('')
 const toast = ref('')
@@ -49,11 +51,13 @@ async function load() {
 }
 
 async function refreshMoney() {
-  const [page, settlement] = await Promise.all([
+  const [expensePage, paymentPage, settlement] = await Promise.all([
     api.listExpenses(props.groupId, 1, 100),
+    api.listPayments(props.groupId, 1, 100),
     api.getSettlement(props.groupId),
   ])
-  expenses.value = page.items
+  expenses.value = expensePage.items
+  payments.value = paymentPage.items
   transfers.value = settlement.transfers
 }
 
@@ -113,6 +117,7 @@ provide(GroupCtxKey, {
   groupId: props.groupId,
   group,
   expenses,
+  payments,
   transfers,
   me,
   refreshMoney,
