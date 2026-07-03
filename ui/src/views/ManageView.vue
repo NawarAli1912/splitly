@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { api, ApiError } from '../lib/api'
 import { forgetGroup } from '../lib/recentGroups'
 import { avatarStyle, formatMoney, initials } from '../lib/format'
+import { copyText } from '../lib/clipboard'
 import { GroupCtxKey } from '../lib/groupContext'
 
 const ctx = inject(GroupCtxKey)!
@@ -28,6 +29,11 @@ function bobStyle(index: number): Record<string, string> {
     animationDelay: `${(index % 5) * 0.6}s`,
     animationDuration: `${4 + (index % 3) * 0.8}s`,
   }
+}
+
+async function copyPersonalLink(participantId: string) {
+  await copyText(`${window.location.origin}/groups/${ctx.groupId}?p=${participantId}`)
+  ctx.showToast(`${nameOf(participantId)}'s personal link copied`)
 }
 
 async function addParticipant() {
@@ -69,6 +75,9 @@ async function deleteGroup() {
     <!-- People bubbles -->
     <section class="glass mt-6 p-6">
       <h2 class="text-lg font-semibold tracking-tight">People</h2>
+      <p class="mt-1 text-[13px] text-ink-secondary">
+        Tap a person to copy their personal link — opening it signs them in, no typing.
+      </p>
 
       <TransitionGroup
         tag="div"
@@ -81,8 +90,9 @@ async function deleteGroup() {
           class="float-bob group relative flex flex-col items-center"
           :style="bobStyle(index)"
         >
-          <span
-            class="flex items-center justify-center rounded-full font-semibold shadow-card"
+          <button
+            type="button"
+            class="flex cursor-pointer items-center justify-center rounded-full font-semibold shadow-card transition duration-200 hover:scale-105 active:scale-95"
             :style="{
               ...avatarStyle(participant.id),
               width: `${bubbleSize(index)}px`,
@@ -90,9 +100,11 @@ async function deleteGroup() {
               fontSize: `${bubbleSize(index) / 3.4}px`,
               border: participant.id === me ? '2.5px solid var(--color-accent)' : 'none',
             }"
+            :aria-label="`Copy ${participant.name}'s personal link`"
+            @click="copyPersonalLink(participant.id)"
           >
             {{ initials(participant.name) }}
-          </span>
+          </button>
           <span class="mt-2 text-[13px] font-medium">
             {{ participant.name }}
             <span v-if="participant.id === me" class="text-accent">· you</span>

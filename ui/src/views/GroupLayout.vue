@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, provide, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   api,
   ApiError,
@@ -10,10 +11,13 @@ import {
 import { forgetGroup, rememberGroup } from '../lib/recentGroups'
 import { identityFor, setIdentity, SKIPPED } from '../lib/identity'
 import { formatMoney } from '../lib/format'
+import { copyText } from '../lib/clipboard'
 import { GroupCtxKey } from '../lib/groupContext'
 import GroupTabs from '../components/GroupTabs.vue'
 
 const props = defineProps<{ groupId: string }>()
+const route = useRoute()
+const router = useRouter()
 
 const group = ref<GroupResponse>()
 const expenses = ref<ExpenseResponse[]>([])
@@ -33,6 +37,7 @@ async function load() {
   try {
     group.value = await api.getGroup(props.groupId)
     rememberGroup(group.value)
+    claimFromPersonalLink()
     await refreshMoney()
   } catch (e) {
     loadError.value =
@@ -82,6 +87,17 @@ function browse() {
   me.value = SKIPPED
 }
 
+function claimFromPersonalLink() {
+  const p = route.query.p
+  if (typeof p !== 'string') return
+  const participant = group.value!.participants.find((x) => x.id === p)
+  if (participant) {
+    setIdentity(props.groupId, participant.id)
+    me.value = participant.id
+    showToast(`Welcome, ${participant.name} — this device is you now`)
+  }
+  router.replace({ query: {} })
+}
 
 function showToast(message: string) {
   toast.value = message
@@ -89,17 +105,7 @@ function showToast(message: string) {
 }
 
 async function copyInvite() {
-  const url = `${window.location.origin}/groups/${props.groupId}`
-  try {
-    await navigator.clipboard.writeText(url)
-  } catch {
-    const area = document.createElement('textarea')
-    area.value = url
-    document.body.appendChild(area)
-    area.select()
-    document.execCommand('copy')
-    area.remove()
-  }
+  await copyText(`${window.location.origin}/groups/${props.groupId}`)
   showToast('Invite link copied')
 }
 
