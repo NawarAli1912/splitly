@@ -15,6 +15,7 @@ Add expenses for a trip or a shared flat, and Splitly tells you exactly who pays
 - **Rich domain model** — every invariant lives inside the `ExpenseGroup` aggregate; invalid state is unrepresentable from outside
 - **REST API discipline** — request/response contracts, thin controllers, one handler per use case, every error an RFC 7807 `problem+json` body
 - **Full-stack integration tests** — Testcontainers Postgres + `WebApplicationFactory`, the whole journey through real HTTP
+- **Capacity thinking** — [SYSTEM_DESIGN.md](SYSTEM_DESIGN.md): an explicit load model for 1M users / 500 rps peak, the bottlenecks in the order they'll appear, and a staged scaling plan
 
 ## API
 
