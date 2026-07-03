@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --color-canvas: #f2f3f7;
+  --color-ink: #1d1d1f;
+  --color-ink-secondary: #6e6e73;
+  --color-line: #d2d2d7;
+  --color-accent: #0071e3;
+  --color-accent-hover: #0077ed;
+  --color-positive: #2f9e63;
+  --color-negative: #e25c4a;
+
+  --radius-card: 22px;
+  --shadow-card: 0 8px 32px rgb(31 38 135 / 0.08);
+}
+
+body {
+  @apply bg-canvas text-ink font-sans antialiased;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.float-bob {
+  animation: bob 4.5s ease-in-out infinite;
+}
