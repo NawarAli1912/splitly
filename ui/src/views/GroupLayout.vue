@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, provide, ref } from 'vue'
+import { computed, onMounted, provide, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   api,
@@ -7,6 +7,7 @@ import {
   type ExpenseResponse,
   type GroupResponse,
   type PaymentResponse,
+  type SettlementStrategy,
   type TransferResponse,
 } from '../lib/api'
 import { forgetGroup, rememberGroup } from '../lib/recentGroups'
@@ -24,6 +25,8 @@ const group = ref<GroupResponse>()
 const expenses = ref<ExpenseResponse[]>([])
 const payments = ref<PaymentResponse[]>([])
 const transfers = ref<TransferResponse[]>([])
+const strategy = ref<SettlementStrategy>('minimum-transfers')
+const banker = ref('')
 const loadError = ref('')
 const toast = ref('')
 
@@ -51,15 +54,27 @@ async function load() {
 }
 
 async function refreshMoney() {
+  // via-banker without a banker (e.g. banker was removed) falls back to the default
+  const useStrategy =
+    strategy.value === 'via-banker' && banker.value === '' ? 'minimum-transfers' : strategy.value
   const [expensePage, paymentPage, settlement] = await Promise.all([
     api.listExpenses(props.groupId, 1, 100),
     api.listPayments(props.groupId, 1, 100),
-    api.getSettlement(props.groupId),
+    api.getSettlement(
+      props.groupId,
+      useStrategy,
+      useStrategy === 'via-banker' ? banker.value : undefined,
+    ),
   ])
   expenses.value = expensePage.items
   payments.value = paymentPage.items
   transfers.value = settlement.transfers
 }
+
+watch([strategy, banker], () => {
+  if (strategy.value === 'via-banker' && banker.value === '') return
+  refreshMoney()
+})
 
 async function join() {
   joinError.value = ''
@@ -119,6 +134,8 @@ provide(GroupCtxKey, {
   expenses,
   payments,
   transfers,
+  strategy,
+  banker,
   me,
   refreshMoney,
   copyInvite,

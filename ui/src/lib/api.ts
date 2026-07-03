@@ -54,6 +54,8 @@ export interface SettlementResponse {
   transfers: TransferResponse[]
 }
 
+export type SettlementStrategy = 'minimum-transfers' | 'direct-payback' | 'via-banker'
+
 export interface AddExpenseRequest {
   paidById: string
   amount: number
@@ -134,6 +136,11 @@ export const api = {
   removePayment: (groupId: string, paymentId: string) =>
     request<void>('DELETE', `/groups/${groupId}/payments/${paymentId}`),
 
-  getSettlement: (groupId: string) =>
-    request<SettlementResponse>('GET', `/groups/${groupId}/settlement`),
+  getSettlement: (groupId: string, strategy?: SettlementStrategy, hub?: string) => {
+    const params = new URLSearchParams()
+    if (strategy) params.set('strategy', strategy)
+    if (hub) params.set('hub', hub)
+    const query = params.size ? `?${params}` : ''
+    return request<SettlementResponse>('GET', `/groups/${groupId}/settlement${query}`)
+  },
 }

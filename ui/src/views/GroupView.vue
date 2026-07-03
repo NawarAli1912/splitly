@@ -1,12 +1,25 @@
 <script setup lang="ts">
 import { computed, inject, ref } from 'vue'
-import { api, ApiError, type TransferResponse } from '../lib/api'
+import { api, ApiError, type SettlementStrategy, type TransferResponse } from '../lib/api'
 import { SKIPPED } from '../lib/identity'
 import { avatarStyle, formatMoney, initials } from '../lib/format'
 import { GroupCtxKey } from '../lib/groupContext'
 
 const ctx = inject(GroupCtxKey)!
-const { group, expenses, transfers, me } = ctx
+const { group, expenses, transfers, strategy, banker, me } = ctx
+
+const strategyOptions: { value: SettlementStrategy; label: string }[] = [
+  { value: 'minimum-transfers', label: 'Fewest transfers' },
+  { value: 'direct-payback', label: 'Pay back directly' },
+  { value: 'via-banker', label: 'Through one person' },
+]
+
+function pickStrategy(value: SettlementStrategy) {
+  if (value === 'via-banker' && banker.value === '') {
+    banker.value = hasIdentity.value ? me.value! : (group.value?.participants[0]?.id ?? '')
+  }
+  strategy.value = value
+}
 
 const today = new Date().toISOString().slice(0, 10)
 const expensePaidBy = ref('')
@@ -211,6 +224,34 @@ async function addExpense() {
     <!-- Settlement -->
     <section v-if="expenses.length > 0" class="glass mt-6 p-6">
       <h2 class="text-lg font-semibold tracking-tight">Who pays whom</h2>
+
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <div class="flex rounded-full border border-line/70 bg-white/40 p-0.5">
+          <button
+            v-for="option in strategyOptions"
+            :key="option.value"
+            type="button"
+            class="rounded-full px-3 py-1 text-[12px] font-medium transition duration-200"
+            :class="
+              strategy === option.value
+                ? 'bg-accent text-white'
+                : 'text-ink-secondary hover:text-ink'
+            "
+            @click="pickStrategy(option.value)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+        <select
+          v-if="strategy === 'via-banker'"
+          v-model="banker"
+          class="appearance-none rounded-full border border-line/70 bg-white/70 px-3 py-1 text-[12px] outline-none transition duration-200 focus:border-accent"
+        >
+          <option v-for="p in group.participants" :key="p.id" :value="p.id">
+            via {{ p.id === me ? 'you' : p.name }}
+          </option>
+        </select>
+      </div>
 
       <div v-if="transfers.length === 0" class="mt-3 py-6 text-center">
         <p class="text-3xl">🎉</p>

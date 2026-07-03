@@ -52,6 +52,10 @@ async function removeParticipant(participantId: string) {
   try {
     await api.removeParticipant(ctx.groupId, participantId)
     group.value!.participants = group.value!.participants.filter((p) => p.id !== participantId)
+    if (ctx.banker.value === participantId) {
+      ctx.banker.value = ''
+      ctx.strategy.value = 'minimum-transfers'
+    }
   } catch (e) {
     participantError.value = e instanceof ApiError ? e.message : 'Could not reach the server'
   }

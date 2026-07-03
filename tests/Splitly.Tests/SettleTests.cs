@@ -1,4 +1,5 @@
 using Splitly.Api.Domain;
+using Splitly.Api.Domain.Settlement;
 
 namespace Splitly.Tests;
 
@@ -133,6 +134,85 @@ public class SettleTests
             group.RemoveParticipant(carol).FirstError);
     }
 
+    [Fact]
+    public void DirectPayback_RepaysEachCreditorSeparately()
+    {
+        var (group, alice, bob, carol) = CreateTripGroup();
+        group.AddExpense(alice, 90m, "Dinner", Today, [alice, bob, carol]);
+        group.AddExpense(bob, 30m, "Taxi", Today, [alice, bob, carol]);
+
+        var transfers = group.Settle(new DirectPaybackStrategy());
+
+        Assert.Equal(3, transfers.Count);
+        Assert.Contains(transfers, t => t.FromParticipantId == bob && t.ToParticipantId == alice && t.Amount.Value == 20m);
+        Assert.Contains(transfers, t => t.FromParticipantId == carol && t.ToParticipantId == alice && t.Amount.Value == 30m);
+        Assert.Contains(transfers, t => t.FromParticipantId == carol && t.ToParticipantId == bob && t.Amount.Value == 10m);
+        AssertEveryoneSettled(group, transfers);
+    }
+
+    [Fact]
+    public void DirectPayback_RecordedPaymentReducesThePairDebt()
+    {
+        var (group, alice, bob, _) = CreateTripGroup();
+        group.AddExpense(alice, 100m, "Hotel", Today, [alice, bob]);
+        group.RecordPayment(bob, alice, 20m, Today);
+
+        var transfer = Assert.Single(group.Settle(new DirectPaybackStrategy()));
+        Assert.Equal(bob, transfer.FromParticipantId);
+        Assert.Equal(alice, transfer.ToParticipantId);
+        Assert.Equal(30m, transfer.Amount.Value);
+    }
+
+    [Fact]
+    public void ViaBanker_RoutesEveryTransferThroughTheHub()
+    {
+        var (group, alice, bob, carol) = CreateTripGroup();
+        group.AddExpense(alice, 90m, "Dinner", Today, [alice, bob, carol]);
+
+        var transfers = group.Settle(new ViaBankerStrategy(carol));
+
+        Assert.Equal(2, transfers.Count);
+        Assert.All(transfers, t =>
+            Assert.True(t.FromParticipantId == carol || t.ToParticipantId == carol));
+        AssertEveryoneSettled(group, transfers);
+    }
+
+    [Fact]
+    public void AllStrategies_LeaveEveryoneSettled()
+    {
+        var (group, alice, bob, carol) = CreateTripGroup();
+        group.AddExpense(alice, 100m, "Groceries", Today, [alice, bob, carol]);
+        group.AddExpense(bob, 45.5m, "Fuel", Today, [bob, carol]);
+        group.AddExpense(carol, 10m, "Coffee", Today, [alice]);
+        group.RecordPayment(carol, alice, 12.34m, Today);
+
+        ISettlementStrategy[] strategies =
+        [
+            new MinimumTransfersStrategy(),
+            new DirectPaybackStrategy(),
+            new ViaBankerStrategy(bob),
+        ];
+
+        foreach (var strategy in strategies)
+        {
+            AssertEveryoneSettled(group, group.Settle(strategy));
+        }
+    }
+
+    [Fact]
+    public void MinimumTransfers_NeverExceedsDirectPayback()
+    {
+        var (group, alice, bob, carol) = CreateTripGroup();
+        group.AddExpense(alice, 90m, "Dinner", Today, [alice, bob, carol]);
+        group.AddExpense(bob, 30m, "Taxi", Today, [alice, bob, carol]);
+        group.AddExpense(carol, 60m, "Museum", Today, [alice, bob]);
+
+        var minimum = group.Settle(new MinimumTransfersStrategy());
+        var direct = group.Settle(new DirectPaybackStrategy());
+
+        Assert.True(minimum.Count <= direct.Count);
+    }
+
     private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.UtcNow);
 
     private static (ExpenseGroup Group, Guid Alice, Guid Bob, Guid Carol) CreateTripGroup()
@@ -157,6 +237,12 @@ public class SettleTests
             {
                 balances[participantId] -= share;
             }
+        }
+
+        foreach (var payment in group.Payments)
+        {
+            balances[payment.FromParticipantId] += payment.Amount;
+            balances[payment.ToParticipantId] -= payment.Amount;
         }
 
         foreach (var transfer in transfers)
