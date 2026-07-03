@@ -11,7 +11,7 @@ public sealed class GetSettlementHandler(ISplitlyDbContext dbContext)
 {
     private static readonly Error UnknownStrategy = Error.Validation(
         "Settlement.UnknownStrategy",
-        "Strategy must be one of: minimum-transfers, direct-payback, via-banker.");
+        "Strategy must be one of: minimum-transfers, exact-minimum, direct-payback, via-banker.");
 
     private static readonly Error HubRequired = Error.Validation(
         "Settlement.HubRequired", "The via-banker strategy requires a hub participant id.");
@@ -57,6 +57,9 @@ public sealed class GetSettlementHandler(ISplitlyDbContext dbContext)
         {
             case null or "minimum-transfers":
                 return new MinimumTransfersStrategy();
+
+            case "exact-minimum":
+                return new ExactMinimumStrategy();
 
             case "direct-payback":
                 return new DirectPaybackStrategy();

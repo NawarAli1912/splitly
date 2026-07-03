@@ -164,6 +164,11 @@ public sealed class SplitlyApiTests(SplitlyApiFactory factory) : IClassFixture<S
         Assert.NotNull(direct);
         Assert.Equal(3, direct.Transfers.Count);
 
+        var exact = await _client.GetFromJsonAsync<SettlementResponse>(
+            $"/groups/{groupId}/settlement?strategy=exact-minimum");
+        Assert.NotNull(exact);
+        Assert.Equal(2, exact.Transfers.Count);
+
         var viaBanker = await _client.GetFromJsonAsync<SettlementResponse>(
             $"/groups/{groupId}/settlement?strategy=via-banker&hub={carol}");
         Assert.NotNull(viaBanker);

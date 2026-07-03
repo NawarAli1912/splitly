@@ -6,14 +6,16 @@ namespace Splitly.Api.Domain.Settlement;
 /// </summary>
 public sealed class MinimumTransfersStrategy : ISettlementStrategy
 {
-    public IReadOnlyList<Transfer> Settle(ExpenseGroup group)
+    public IReadOnlyList<Transfer> Settle(ExpenseGroup group) => GreedyMatch(group.NetBalances());
+
+    internal static List<Transfer> GreedyMatch(IEnumerable<KeyValuePair<Guid, Money>> balances)
     {
         var largestFirst = Comparer<Money>.Create((left, right) => right.CompareTo(left));
 
         PriorityQueue<Guid, Money> debtors = new(largestFirst);
         PriorityQueue<Guid, Money> creditors = new(largestFirst);
 
-        foreach ((Guid participantId, Money balance) in group.NetBalances())
+        foreach ((Guid participantId, Money balance) in balances)
         {
             if (balance.IsNegative)
             {
