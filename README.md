@@ -32,9 +32,20 @@ Errors follow one contract: `400` validation (field-level details), `404` not fo
 
 ## Run
 
+The whole product — UI, API, Postgres — with one command:
+
 ```bash
-docker compose up -d      # Postgres 17
+docker compose up -d --build
+```
+
+Then open http://localhost:3000.
+
+For development (hot reload):
+
+```bash
+docker compose up -d postgres
 dotnet run --project src/Splitly.Api
+npm run dev --prefix ui       # http://localhost:5173, proxies /api to the API
 ```
 
 ## Test

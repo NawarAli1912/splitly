@@ -16,5 +16,30 @@ services:
       timeout: 5s
       retries: 5
 
+  api:
+    build:
+      context: .
+      dockerfile: src/Splitly.Api/Dockerfile
+    container_name: splitly-api
+    environment:
+      # Development so migrations auto-apply on startup — right for a local demo,
+      # a real deployment runs migrations as a deploy step instead.
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=splitly;Username=postgres;Password=postgres
+    ports:
+      - "5170:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ui:
+    build:
+      context: ui
+    container_name: splitly-ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
 volumes:
   postgres-data:
