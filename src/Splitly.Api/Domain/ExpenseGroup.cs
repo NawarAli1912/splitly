@@ -1,4 +1,5 @@
 using ErrorOr;
+using Splitly.Api.Domain.Settlement;
 
 namespace Splitly.Api.Domain;
 
@@ -178,7 +179,11 @@ public sealed class ExpenseGroup
         return removedCount == 0 ? ExpenseGroupErrors.PaymentNotFound : Result.Deleted;
     }
 
-    public IReadOnlyList<Transfer> Settle()
+    public IReadOnlyList<Transfer> Settle() => Settle(new MinimumTransfersStrategy());
+
+    public IReadOnlyList<Transfer> Settle(ISettlementStrategy strategy) => strategy.Settle(this);
+
+    public IReadOnlyDictionary<Guid, Money> NetBalances()
     {
         Dictionary<Guid, Money> participantsBalances = [];
 
@@ -205,48 +210,7 @@ public sealed class ExpenseGroup
             participantsBalances[payment.ToParticipantId] = toBalance - payment.Amount;
         }
 
-        var largestFirst = Comparer<Money>.Create((left, right) => right.CompareTo(left));
-
-        PriorityQueue<Guid, Money> debtors = new(largestFirst);
-        PriorityQueue<Guid, Money> creditors = new(largestFirst);
-
-        foreach ((Guid participantId, Money balance) in participantsBalances)
-        {
-            if (balance.IsNegative)
-            {
-                debtors.Enqueue(participantId, balance.Abs());
-            }
-            else if (balance.IsPositive)
-            {
-                creditors.Enqueue(participantId, balance);
-            }
-        }
-
-        List<Transfer> transfers = [];
-
-        while (debtors.Count > 0 && creditors.Count > 0)
-        {
-            debtors.TryDequeue(out Guid debtorId, out Money owed);
-            creditors.TryDequeue(out Guid creditorId, out Money credit);
-
-            Money paid = Money.Min(owed, credit);
-            transfers.Add(new Transfer(debtorId, creditorId, paid));
-
-            Money remainingDebt = owed - paid;
-            Money remainingCredit = credit - paid;
-
-            if (remainingDebt.IsPositive)
-            {
-                debtors.Enqueue(debtorId, remainingDebt);
-            }
-
-            if (remainingCredit.IsPositive)
-            {
-                creditors.Enqueue(creditorId, remainingCredit);
-            }
-        }
-
-        return transfers;
+        return participantsBalances;
     }
 
     private bool IsParticipant(Guid id) => _participants.Any(p => p.Id == id);

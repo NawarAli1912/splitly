@@ -150,6 +150,38 @@ public sealed class SplitlyApiTests(SplitlyApiFactory factory) : IClassFixture<S
     }
 
     [Fact]
+    public async Task SettlementStrategies_AreSelectableViaQueryParams()
+    {
+        var groupId = await CreateGroupAsync("Ski trip");
+        var alice = await AddParticipantAsync(groupId, "Alice");
+        var bob = await AddParticipantAsync(groupId, "Bob");
+        var carol = await AddParticipantAsync(groupId, "Carol");
+        await AddExpenseAsync(groupId, new AddExpenseRequest(alice, 90m, "Dinner", Today, [alice, bob, carol]));
+        await AddExpenseAsync(groupId, new AddExpenseRequest(bob, 30m, "Taxi", Today, [alice, bob, carol]));
+
+        var direct = await _client.GetFromJsonAsync<SettlementResponse>(
+            $"/groups/{groupId}/settlement?strategy=direct-payback");
+        Assert.NotNull(direct);
+        Assert.Equal(3, direct.Transfers.Count);
+
+        var viaBanker = await _client.GetFromJsonAsync<SettlementResponse>(
+            $"/groups/{groupId}/settlement?strategy=via-banker&hub={carol}");
+        Assert.NotNull(viaBanker);
+        Assert.All(viaBanker.Transfers, t =>
+            Assert.True(t.FromParticipantId == carol || t.ToParticipantId == carol));
+
+        var unknown = await _client.GetAsync($"/groups/{groupId}/settlement?strategy=zigzag");
+        Assert.Equal(HttpStatusCode.BadRequest, unknown.StatusCode);
+
+        var hubMissing = await _client.GetAsync($"/groups/{groupId}/settlement?strategy=via-banker");
+        Assert.Equal(HttpStatusCode.BadRequest, hubMissing.StatusCode);
+
+        var hubUnknown = await _client.GetAsync(
+            $"/groups/{groupId}/settlement?strategy=via-banker&hub={Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.NotFound, hubUnknown.StatusCode);
+    }
+
+    [Fact]
     public async Task SelfPayment_ReturnsValidationProblemDetails()
     {
         var groupId = await CreateGroupAsync("Solo");
