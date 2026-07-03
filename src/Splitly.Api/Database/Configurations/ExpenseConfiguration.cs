@@ -13,6 +13,8 @@ public sealed class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
 
         builder.HasKey(e => e.Id);
 
+        builder.Property(e => e.Id).ValueGeneratedNever();
+
         builder.Property(e => e.Description).HasMaxLength(500);
 
         builder.Property(e => e.Amount)

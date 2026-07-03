@@ -4,6 +4,9 @@ namespace Splitly.Api.Domain;
 
 public static class ExpenseGroupErrors
 {
+    public static readonly Error NotFound = Error.NotFound(
+        "ExpenseGroup.NotFound", "Expense group not found.");
+
     public static readonly Error NameRequired = Error.Validation(
         "ExpenseGroup.NameRequired", "Group name is required.");
 

@@ -1,15 +1,12 @@
-using Microsoft.EntityFrameworkCore;
-using Splitly.Api.Database;
+using Splitly.Api;
 using Splitly.Api.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
-
-builder.Services.AddDbContext<SplitlyDbContext>(options =>
-    options
-        .UseNpgsql(builder.Configuration.GetConnectionString("Database"))
-        .UseSnakeCaseNamingConvention());
+builder
+    .AddApiServices()
+    .AddDatabase()
+    .AddApplication();
 
 var app = builder.Build();
 
@@ -20,8 +17,12 @@ if (app.Environment.IsDevelopment())
     await app.ApplyMigrationsAsync();
 }
 
+app.UseExceptionHandler();
+
 app.UseHttpsRedirection();
 
-app.MapGet("/", () => "Splitly API");
+app.MapControllers();
 
 app.Run();
+
+public partial class Program;
