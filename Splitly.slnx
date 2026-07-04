@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Splitly.Benchmarks/Splitly.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Splitly.Api/Splitly.Api.csproj" />
   </Folder>

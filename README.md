@@ -60,6 +60,12 @@ npm run dev --prefix ui       # http://localhost:5173, proxies /api to the API
 dotnet test               # unit + integration (integration tests start their own Postgres via Testcontainers)
 ```
 
+Strategy benchmarks (BenchmarkDotNet, [results](benchmarks/Splitly.Benchmarks/README.md)):
+
+```bash
+dotnet run -c Release --project benchmarks/Splitly.Benchmarks -- --filter '*'
+```
+
 ## Stack
 
 ASP.NET Core (.NET 10) · EF Core + PostgreSQL · ErrorOr · xUnit + Testcontainers
